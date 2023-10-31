@@ -1,5 +1,4 @@
 from ModelingStocks import *
-import pytz
 from dateutil.relativedelta import relativedelta
 import plotly.express as px
 import plotly.graph_objects as go
@@ -37,20 +36,18 @@ class Stock:
 
 
 class PracticeStockEvaluation:
-    def __init__(self, ticker: str, amount_of_stocks: int, months_of_train: int, months_of_evaluating: int,
-                 tz: str = "America/New_York"):
+    def __init__(self, ticker: str, amount_of_stocks: int, months_of_train: int, months_of_evaluating: int,):
         self.stocks_owned = 0
         self.capital = 0
         self.price = 0
         self.starting_cap = 0
-        self.tz = pytz.timezone(tz)
 
-        start_train = self.tz.localize(dt.now()) - relativedelta(months=months_of_train + months_of_evaluating)
-        end_train = self.tz.localize(dt.now()) - relativedelta(months=months_of_evaluating)
+        start_train = dt.now() - relativedelta(months=months_of_train + months_of_evaluating)
+        end_train = dt.now() - relativedelta(months=months_of_evaluating)
         start_eval = end_train
-        end_eval = self.tz.localize(dt.now())
+        end_eval = dt.now()
 
-        self.stock_df, self.scaler, self.x_origin = format_data(ticker, (start_train, end_eval))
+        self.stock_df, self.scaler, self.x_origin = format_data(ticker, (start_train, end_eval), (start_train, end_train))
         self.model = create_model(self.stock_df, (start_train, end_train))
         self.stock_df['yhat'] = self.model.predict(self.stock_df[['Scaled']].to_numpy())
 
@@ -59,7 +56,7 @@ class PracticeStockEvaluation:
 
         self.zeros = get_zeros(self.func_derv,
                                self.sec_derv,
-                               [self.eval_df[['X']].min(), self.eval_df[['X']].max()],
+                               [self.eval_df['X'].min(), self.eval_df['X'].max()],
                                'neg')
         self.zeros.sort()
         first_zero, is_max = self.zeros[0]
@@ -82,16 +79,21 @@ class PracticeStockEvaluation:
             else:
                 self.buy()
 
+        last_zero, is_max = self.zeros[-1]
+        self.set_time(self.stock_df['X'].max())
+        if not is_max:
+            self.sell()
+
     def get_market_cap(self):
-        return self.stocks_owned * self.price + self.capital
+        return round(self.stocks_owned * self.price + self.capital, 2)
 
     def get_gains(self):
-        return self.get_market_cap() - self.starting_cap
+        return round(self.get_market_cap() - self.starting_cap, 2)
 
     def set_time(self, x):
-        date = self.tz.localize(dt.fromtimestamp(x + self.x_origin))
-        holding_df: pd.DataFrame = self.stock_df[self.stock_df['Date'] <= date]
-        self.price = holding_df.loc[holding_df['Date'] == holding_df[['Date']].max(), 'Close'].item()
+        holding_df: pd.DataFrame = self.stock_df[self.stock_df['X'] <= x]
+        holding_df = holding_df[holding_df['X'] == holding_df['X'].max()]
+        self.price = holding_df['Close'].tolist()[0]
 
     def get_fig(self):
         data = self.train_df.copy()
@@ -114,8 +116,8 @@ class PracticeStockEvaluation:
 
         holding_dict = {'Date': [], 'yhat': []}
         for x, _ in self.zeros:
-            holding_dict['Date'].append(self.tz.localize(dt.fromtimestamp(x + self.x_origin)))
-            holding_dict['yhat'].append(self.func(x))
+            holding_dict['Date'].append(dt.fromtimestamp(x + self.x_origin))
+            holding_dict['yhat'].append(self.func(x)[0])
         zeros_df = pd.DataFrame(holding_dict)
         zeros_df.sort_values(by='Date', inplace=True)
         fig1 = px.line(zeros_df, x='Date', y='yhat')
@@ -124,7 +126,7 @@ class PracticeStockEvaluation:
         figure_3 = go.Figure(data=fig1.data + fig2.data)
         figure_3.update_xaxes(title_text='Date')
         figure_3.update_yaxes(title_text='Stock Price')
-        
+
         return figure_1, figure_2, figure_3
 
     def buy(self):

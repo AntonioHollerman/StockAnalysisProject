@@ -17,12 +17,13 @@ class AsymptoteSpottedError(Exception):
         super().__init__(self.message)
 
 
-def format_data(ticker: str, data_range: Tuple[dt, dt]):
+def format_data(ticker: str, data_range: Tuple[dt, dt], train_range: Tuple[dt, dt]):
     data: pd.DataFrame = yf.download(ticker, start=data_range[0], end=data_range[1])
     data = data[['Close']].reset_index()
     x_origin = data['Date'].min().timestamp()
     data['X'] = data['Date'].apply(lambda x: x.timestamp() - x_origin)
-    scaler = StandardScaler().fit(data[['X']])
+    train_data: pd.DataFrame = data[(data['Date'] >= train_range[0]) & (data['Date'] <= train_range[1])].copy()
+    scaler = StandardScaler().fit(train_data[['X']])
     data['Scaled'] = scaler.transform(data[['X']])
     return data.copy(), scaler, x_origin
 
@@ -31,13 +32,13 @@ def create_model(df, train_range: Tuple[dt, dt]):
     start, end = train_range
     data: pd.DataFrame = df[(df['Date'] >= start) & (df['Date'] <= end)].copy()
     x = data[['Scaled']].to_numpy()
-    y = data[['Closed']].to_numpy()
+    y = data[['Close']].to_numpy()
 
     pipe = make_pipeline(FunctionTransformer(), PolynomialFeatures(), Ridge())
     param_grid = {'polynomialfeatures__degree': [16],
                   'ridge__alpha': [0.01, 0.1, 1.0],
                   'ridge__copy_X': [True, False],
-                  'ridge__solver': ['auto'],
+                  'ridge__solver': ['lsqr'],
                   'ridge__tol': [0.001, 0.01, 0.1],
                   'functiontransformer__func': [np.sin, np.cos],  # Functions to try
                   'functiontransformer__inverse_func': [np.arcsin, np.arccos],  # Inverse functions to try
@@ -51,7 +52,7 @@ def create_model(df, train_range: Tuple[dt, dt]):
 
 
 def derivative(f, x):
-    delta_x = 1e-323
+    delta_x = 10
     numerator = f(x + delta_x) - f(x)
     denom = (delta_x + x) - x
     return numerator / denom
@@ -66,7 +67,7 @@ def find_zero(f, x0, x1):
 def get_zeros(f, f_prime, range_, sign_wanted):
     # Define the range
     min_, max_ = range_
-    x_range = np.linspace(min_, max_, int((max_ - min_) // 60 ))
+    x_range = np.linspace(min_, max_, int((max_ - min_) // 86400))
 
     # Find zeros in the range
     zeros = []
