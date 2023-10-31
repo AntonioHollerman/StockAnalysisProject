@@ -114,16 +114,27 @@ class PracticeStockEvaluation:
         figure_2.update_xaxes(title_text='Date')
         figure_2.update_yaxes(title_text='Stock Price')
 
-        holding_dict = {'Date': [], 'yhat': []}
-        for x, _ in self.zeros:
+        holding_dict = {'Date': [], 'yhat': [], 'Close': [], 'Logic': []}
+        for x, is_max in self.zeros:
+            self.set_time(x)
             holding_dict['Date'].append(dt.fromtimestamp(x + self.x_origin))
             holding_dict['yhat'].append(self.func(x)[0])
+            holding_dict['Close'].append(self.price)
+            if is_max:
+                holding_dict['Logic'].append('Maximum (Sell)')
+            else:
+                holding_dict['Logic'].append('Minimum (Buy)')
         zeros_df = pd.DataFrame(holding_dict)
         zeros_df.sort_values(by='Date', inplace=True)
-        fig1 = px.line(zeros_df, x='Date', y='yhat')
-        fig2 = px.line(test_data, x='Date', y='yhat')
-        fig2.update_traces(line_color='red')
-        figure_3 = go.Figure(data=fig1.data + fig2.data)
+
+        fig1 = px.line(test_data, x='Date', y='Close')
+        fig2 = px.scatter(zeros_df, x='Date', y='Close', color='Logic',
+                          color_discrete_map={'Maximum (Sell)': 'yellow', 'Minimum (Buy)': 'purple'})
+        fig3 = px.line(zeros_df, x='Date', y='yhat')
+        fig3.update_traces(line_color='green')
+        fig4 = px.line(test_data, x='Date', y='yhat')
+        fig4.update_traces(line_color='red')
+        figure_3 = go.Figure(data=fig1.data + fig2.data + fig3.data + fig4.data)
         figure_3.update_xaxes(title_text='Date')
         figure_3.update_yaxes(title_text='Stock Price')
 

@@ -92,4 +92,4 @@ def get_zeros(f, f_prime, range_, sign_wanted):
             cond_list.append(derivative_value > 0)
         else:
             cond_list.append(derivative_value < 0)
-    return list(zip(zeros, cond_list))
+    return [(zero, cond[0]) for zero, cond in (zip(zeros, cond_list))]
