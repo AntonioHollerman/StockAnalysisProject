@@ -1,10 +1,9 @@
-pip>=0.0.1
 dash>=0.0.1
 pytickersymbols>=0.0.1
 plotly>=0.0.1
 python-dateutil>=0.0.1
 yfinance>=0.0.1
 pandas>=0.0.1
-numpy~>=0.0.1
+numpy>=0.0.1
 scikit-learn>=0.0.1
 scipy>=0.0.1
