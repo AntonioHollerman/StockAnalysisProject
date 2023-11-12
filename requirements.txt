@@ -7,3 +7,4 @@ pandas>=0.0.1
 numpy>=0.0.1
 scikit-learn>=0.0.1
 scipy>=0.0.1
+gunicorn>=0.0.1
