@@ -65,10 +65,10 @@ app.layout = html.Div([
            Input(component_id='my-textbox', component_property='value')])
 def update_graphs(stock_ticker, stock_amount):
     current_stock = PracticeStockEvaluation(stock_ticker, stock_amount, 1, 5)
-    figures = current_stock.get_fig()
+    figure_1, figure_2, figure_3 = current_stock.get_fig()
     current_market_cap = current_stock.get_market_cap()
     current_earnings = current_stock.get_gains()
-    return *figures, f'Market Cap: {current_market_cap}\nEarnings: {current_earnings}'
+    return figure_1, figure_2, figure_3, f'Market Cap: {current_market_cap}\nEarnings: {current_earnings}'
 
 
 if __name__ == '__main__':
