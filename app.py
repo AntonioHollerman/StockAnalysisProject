@@ -13,6 +13,7 @@ market_cap = default_stock.get_market_cap()
 earnings = default_stock.get_gains()
 
 app = Dash(__name__)
+server = app.server
 
 app.layout = html.Div([
     html.H1('My Dash App'),  # Title
