@@ -2,18 +2,28 @@ from dash import Dash, html, dcc, Input, Output, callback
 from StockClasses import *
 from pytickersymbols import PyTickerSymbols
 
+STARTING_STOCKS = 5
+TRAINING_MONTHS = 1
+EVAL_MONTHS = 5
+
 stock_data = PyTickerSymbols()
-all_tickers = {stock['symbol'] for stock in stock_data.get_all_stocks()}
-all_tickers.remove(None)
+tickers = {stock['symbol'] for stock in stock_data.get_all_stocks()}
+tickers.remove(None)
+all_tickers = set()
 
+for tick in tickers:
+    start_train = dt.now() - relativedelta(months=TRAINING_MONTHS + EVAL_MONTHS)
+    holding_frame = yf.download(tick, start=start_train, end=dt.now())
+    if len(holding_frame) != 0:
+        all_tickers.add(tick)
+print(all_tickers)
 
-default_stock = PracticeStockEvaluation("MSFT", 5, 1, 5)
+default_stock = PracticeStockEvaluation("MSFT", STARTING_STOCKS, TRAINING_MONTHS, EVAL_MONTHS)
 fig1, fig2, fig3 = default_stock.get_fig()
 market_cap = default_stock.get_market_cap()
 earnings = default_stock.get_gains()
 
 app = Dash(__name__)
-server = app.server
 
 app.layout = html.Div([
     html.H1('My Dash App'),  # Title
